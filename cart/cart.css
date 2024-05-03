@@ -181,5 +181,16 @@
 }
 
 .snipcart-modal__container {
-  z-index: 99;
+  z-index: 9999999;
+}
+
+.snipcart-cart-summary {
+  background-color: black;
+}
+.snipcart-cart__secondary-header {
+  background-color: black;
+}
+
+.snipcart__box--gray {
+  background-color: black;
 }
