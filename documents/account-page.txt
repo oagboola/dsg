@@ -1,0 +1,96 @@
+$(document).ready(async () => {
+  const userOrders = await fetchOrders();
+  const ownedGames = await fetchOwnedGames();
+  renderOrderDetails(userOrders);
+  renderOwnedGames(ownedGames);
+});
+
+const renderOrderDetails = (orderDetails) => {
+  const orderEl = orderDetails.map(
+    ({ id, game_id, total_price, status, snipcart_metadata }) => {
+      const gameNames = game_id.map(({ name }) => name);
+      return `<div class="order-history-grid order-history-details">
+    <div class="order-details">
+      <div class="order-title for-mobile">Order #</div>
+      <p id="w-node-a0d4f44b-2aba-dca3-bfa0-8a068711498b-fd37acee" class="order-history-text">${id}</p>
+    </div>
+    <div class="order-details">
+      <div class="order-title for-mobile game-name">Game Name: </div>
+      <p id="w-node-a0d4f44b-2aba-dca3-bfa0-8a0687114990-fd37acee" class="order-history-text">${gameNames.join(
+        ", "
+      )}</p>
+    </div>
+    <div class="order-details">
+      <div class="order-title for-mobile">Price: </div>
+      <p id="w-node-a0d4f44b-2aba-dca3-bfa0-8a0687114995-fd37acee" class="order-history-text">${total_price}</p>
+    </div>
+    <div class="order-details">
+      <div class="order-title for-mobile">Status: </div>
+      <p id="w-node-a0d4f44b-2aba-dca3-bfa0-8a068711499a-fd37acee" class="order-history-text">${status}</p>
+    </div>
+    <div class="order-details">
+      <div class="order-title for-mobile">Date</div>
+      <p id="w-node-a0d4f44b-2aba-dca3-bfa0-8a068711499f-fd37acee" class="order-history-text">${formatDate(
+        new Date(snipcart_metadata.createdOn)
+      )}</p>
+    </div>
+  </div>`;
+    }
+  );
+  $(".order-history-tab").html(orderEl.join(""));
+};
+
+const renderOwnedGames = (games) => {
+  const ownedGamesEl = games.map((game) => singleGameDeck(game));
+  $(
+    ".owned-games-tab .account-container .account-wrapper .owned-games-wrapper"
+  ).html(ownedGamesEl.join(""));
+};
+
+const singleGameDeck = (game) => {
+  const centerIcon = game.icons_id.find(
+    (icon) => icon.position === "center"
+  )?._icondetail;
+  const rootIcon = game.icons_id.find(
+    (icon) => icon.position === "root"
+  )?._icondetail;
+  const otherIcons = game.icons_id.filter(
+    (icon) => icon.position !== "center" && icon.position !== "root"
+  );
+  return `
+    <div class="swiper-slide selection-card">
+      <div class="selection-card-icon center-icon">
+        ${
+          centerIcon
+            ? `<img width="25px" height="25px" src=${centerIcon?.url} />`
+            : ""
+        }
+      </div>
+      <div class="selection-card-icon root-icon">
+        ${
+          rootIcon ? `<img width=25px height=25px src="${rootIcon?.url}"/>` : ""
+        }
+      </div>
+      <div class="selection-card-icon top-icon">
+        ${
+          otherIcons[0]
+            ? `<img width=25px height=25px src="${otherIcons[0]?.url}"/>`
+            : ""
+        }
+      </div>
+      <div class="selection-card-icon top-right-icon">
+        ${
+          otherIcons[1]
+            ? `<img width=25px height=25px src="${otherIcons[1]?.url}"/>`
+            : ""
+        }
+      </div>
+      <div class="selection-card-icon top-left-icon">
+        ${
+          otherIcons[2]
+            ? `<img width=25px height=25px src="${otherIcons[2]?.url}"/>`
+            : ""
+        }
+      </div>
+    </div>`;
+};

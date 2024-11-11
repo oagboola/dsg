@@ -1,0 +1,300 @@
+$(document).ready(async function () {
+  const swiper = new Swiper(".swiper-container", {
+    slidesPerView: 3,
+    spaceBetween: 30,
+    navigation: {
+      nextEl: ".next-slide-btn",
+      prevEl: ".previous-slide-btn",
+    },
+  });
+  const params = new URLSearchParams(document.location.search);
+  const deckId = params.get("id");
+  const {
+    name,
+    deckGameIcons,
+    removed_games: removedGames,
+    added_games: addedGames,
+  } = await getDeck(deckId);
+
+  const deckGames = await getDeckGames({
+    deckGameIcons,
+    removedGames,
+    addedGames,
+  });
+  $("#name").val(name);
+
+  let selectedGenres = {};
+  let icons = [];
+  let primaryGenre;
+  try {
+    const data = await fetch(`${baseUrl}/icons`);
+    icons = await data.json();
+    renderIcons(icons);
+    primaryGenre = setSelectedIcons(
+      deckGameIcons,
+      selectedGenres,
+      primaryGenre
+    );
+    renderGameList(deckGames, swiper);
+  } catch (error) {
+    console.log("error loading icons: ", error);
+  }
+  // track selected genres
+  $(".genre-icon-wrapper").on("click", function (e) {
+    e.preventDefault();
+    const el = $(e.target);
+    // go from default to selected (1st click)
+    if (el.hasClass("unselected-genre")) {
+      el.removeClass("unselected-genre");
+      el.addClass("include-genre");
+      const id = el.attr("data-id");
+      selectedGenres[id] = "include";
+      filterGameList(addedGames, removedGames, selectedGenres, swiper);
+      return;
+    }
+    // 2nd click: go from selected to exclude
+    if (el.hasClass("include-genre")) {
+      el.removeClass("include-genre");
+      el.addClass("exclude-genre");
+      const id = el.attr("data-id");
+      selectedGenres[id] = "exclude";
+      filterGameList(addedGames, removedGames, selectedGenres, swiper);
+      return;
+    }
+    // 3rd click: go from exclude to default (unselected)
+    if (el.hasClass("exclude-genre")) {
+      el.removeClass("exclude-genre");
+      el.addClass("unselected-genre");
+      const id = el.attr("data-id");
+      delete selectedGenres[id];
+      filterGameList(addedGames, removedGames, selectedGenres, swiper);
+      return;
+    }
+    // transit from primary to selected
+    if (el.hasClass("include-primary")) {
+      el.removeClass("include-primary");
+      el.addClass("include-genre");
+      const id = el.attr("data-id");
+      selectedGenres[id] = "include";
+      filterGameList(addedGames, removedGames, selectedGenres, swiper);
+      return;
+    }
+  });
+  $(".genre-icon-wrapper").on("dblclick", function (el) {
+    if (primaryGenre) {
+      primaryGenre.removeClass("include-primary");
+      primaryGenre.addClass("unselected-genre");
+      const id = primaryGenre.attr("data-id");
+      delete selectedGenres[id];
+    }
+    $(el.target).removeClass("include-genre");
+    $(el.target).removeClass("exclude-genre");
+    $(el.target).removeClass("unselected-genre");
+    $(el.target).addClass("include-primary");
+    const id = $(el.target).attr("data-id");
+    primaryGenre = $(el.target);
+    selectedGenres[id] = "primary";
+    filterGameList(addedGames, removedGames, selectedGenres, swiper);
+  });
+  $("#save-deck").on("click", async function (e) {
+    e.preventDefault();
+    $("#name").attr("disabled", true);
+    const deckName = $("#name").val();
+    if (!deckName) {
+      alert("Deck name cannot be empty");
+      return;
+    }
+    try {
+      await processDeckUpdate(
+        deckId,
+        deckName,
+        selectedGenres,
+        removedGames,
+        addedGames,
+        deckGameIcons
+      );
+      alert("Deck succesfully updated");
+    } catch (error) {
+      alert("error creating Deck" + error);
+    }
+    $("#name").attr("disabled", false);
+  });
+});
+const processDeckUpdate = async (
+  id,
+  name,
+  selectedGenres,
+  removedGames,
+  addedGames,
+  initialIcons
+) => {
+  const deckIcons = Object.entries(selectedGenres).map(([id, state]) => ({
+    id,
+    state,
+  }));
+  const existingIconsId = new Set(
+    initialIcons.map(({ icons_id }) => icons_id.toString())
+  );
+  const iconsToUpdate = [];
+  const iconsToCreate = [];
+  const currentIconsId = new Set(deckIcons.map(({ id }) => id));
+  const iconsToDelete = initialIcons.filter(
+    ({ icons_id }) => !currentIconsId.has(icons_id.toString())
+  );
+  for (let icon of deckIcons) {
+    if (existingIconsId.has(icon.id)) {
+      const iconDetail = initialIcons.find(
+        ({ icons_id }) => icons_id == icon.id
+      );
+      iconsToUpdate.push({ ...icon, deckIconId: iconDetail.id });
+    } else {
+      iconsToCreate.push(icon);
+    }
+  }
+
+  const deckInfo = {
+    name,
+    removed_games: (removedGames || []).map(({ id }) => id),
+    added_games: (addedGames || []).map(({ id }) => id),
+    iconsToCreate,
+    iconsToUpdate,
+    iconsToDelete,
+  };
+  await updateDeck(deckInfo, id);
+};
+const renderIcons = (icons) => {
+  $(".included-genres-wrapper").html("");
+  icons.forEach((icon, i) => {
+    const iconEl = $(
+      `<div class="genre-icon-wrapper">
+              <img width="40px" height="40px" data-id=${icon.id} class="genre-icon unselected-genre" src=${icon.url} alt=${icon.name} />
+            </div>`
+    );
+    $(".included-genres-wrapper").append(iconEl);
+  });
+};
+const renderGameList = (games, swiper) => {
+  swiper.removeAllSlides();
+  const slides = games
+    .filter((game) => game)
+    .map((game) => {
+      const centerIcon = game.icons?.find(
+        (icon) => icon.position === "center"
+      ).icondetail;
+      const rootIcon = game.icons?.find(
+        (icon) => icon.position === "root"
+      )?.icondetail;
+      const otherIcons =
+        game.icons?.filter(
+          (icon) => icon.position !== "center" && icon.position !== "root"
+        ) || [];
+      return `
+          <div class="swiper-slide selection-card ${
+            game.removed ? "removed-game" : ""
+          }"><div class="selection-card-icon center-icon">
+              <img
+                width="25px"
+                height="25px"
+                src="${centerIcon?.url || ""}"
+              />
+            </div>
+            <div class="selection-card-icon root-icon">
+              ${
+                rootIcon
+                  ? `<img width=25px height=25px src="${rootIcon?.url || ""}"/>`
+                  : ""
+              }
+            </div>
+            <div class="selection-card-icon top-icon">
+              ${
+                otherIcons[0]
+                  ? `<img width=25px height=25px src="${
+                      otherIcons[0]?.icondetail?.url || ""
+                    }"/>`
+                  : ""
+              }
+            </div>
+            <div class="selection-card-icon top-right-icon">
+              ${
+                otherIcons[1]
+                  ? `<img width=25px height=25px src="${
+                      otherIcons[1]?.icondetail?.url || ""
+                    }"/>`
+                  : ""
+              }
+            </div>
+            <div class="selection-card-icon top-left-icon">
+              ${
+                otherIcons[2]
+                  ? `<img width=25px height=25px src="${
+                      otherIcons[2]?.icondetail?.url || ""
+                    }"/>`
+                  : ""
+              }
+            </div>
+          </div>`;
+    });
+  swiper.appendSlide(slides);
+  swiper.init();
+};
+const filterGameList = async (addedGames, removedGames, filter, swiper) => {
+  const query = [];
+  for (const [key, value] of Object.entries(filter)) {
+    query.push(
+      `${value === "primary" ? `${value}_icon` : `${value}_icons[]`}=${key}`
+    );
+  }
+  const queryString = query.join("&");
+  try {
+    const data = await fetch(`${baseUrl}/game-filter?${queryString}`);
+    const games = await data.json();
+    const allGames = [
+      ...games,
+      ...(addedGames || []),
+      ...(removedGames || []).map((game) => ({ ...game, removed: true })),
+    ];
+    renderGameList(allGames, swiper);
+  } catch (error) {
+    console.log(error);
+    alert(error);
+  }
+};
+const getDeckGames = async ({ deckGameIcons, removedGames, addedGames }) => {
+  const query = deckGameIcons.map(
+    ({ state, icons_id }) =>
+      `${state}_${state === "primary" ? "icon" : "icons[]"}=${icons_id}`
+  );
+  const queryString = query.join("&");
+  try {
+    const data = await fetch(`${baseUrl}/game-filter?${queryString}`);
+    const games = await data.json();
+    const allGames = [
+      ...games,
+      ...(addedGames || []),
+      ...(removedGames || []).map((game) => ({ ...game, removed: true })),
+    ];
+    return allGames;
+  } catch (error) {
+    console.log(error);
+  }
+};
+const setSelectedIcons = (deckIcons, selectedGenres, primaryGenre) => {
+  for (let icon of deckIcons) {
+    selectedGenres[icon.icons_id] = icon.state;
+    const el = $(`img.genre-icon[data-id=${icon.icons_id}]`);
+    if (icon.state === "include") {
+      $(el).removeClass("unselected-genre");
+      $(el).addClass("include-genre");
+    }
+    if (icon.state === "exclude") {
+      $(el).removeClass("unselected-genre");
+      $(el).addClass("exclude-genre");
+    }
+    if (icon.state === "primary") {
+      $(el).removeClass("unselected-genre");
+      $(el).addClass("include-primary");
+      primaryGenre = $(el);
+    }
+  }
+  return primaryGenre;
+};

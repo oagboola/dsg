@@ -1,0 +1,145 @@
+const baseUrl = "https://mycorrhizal.deepseedgames.com/api:58ysOPHC";
+
+const updateDeckDefaultPayload = {
+  added_games: [],
+  removed_games: [],
+  iconsToUpdate: [],
+  iconsToDelete: [],
+  iconsToCreate: [],
+};
+
+const getUser = async (auth) => {
+  try {
+    const response = await fetch(`${baseUrl}/auth/me`, {
+      headers: {
+        Authorization: sessionStorage.getItem("token"),
+      },
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const fetchOrders = async () => {
+  try {
+    const response = await fetch(`${baseUrl}/user_orders`, {
+      headers: {
+        Authorization: sessionStorage.getItem("token"),
+      },
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const saveOrder = async (data) => {
+  const user = await getUser();
+  try {
+    await fetch(`${baseUrl}/user_orders`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: sessionStorage.getItem("token"),
+      },
+      body: JSON.stringify({
+        user_id: user.id,
+        snipcart_token: data.token,
+        metadata: data,
+      }),
+    });
+  } catch (error) {
+    console.log("error", error);
+  }
+};
+
+const fetchOwnedGames = async () => {
+  try {
+    const response = await fetch(`${baseUrl}/owned-games`, {
+      headers: {
+        Authorization: sessionStorage.getItem("token"),
+      },
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const listDecks = async () => {
+  try {
+    const response = await fetch(`${baseUrl}/deck`, {
+      headers: {
+        Authorization: sessionStorage.getItem("token"),
+      },
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.log("we are here", error, header);
+    console.log(error);
+  }
+};
+
+const getDeck = async (id) => {
+  try {
+    const response = await fetch(`${baseUrl}/deck/${id}`, {
+      headers: {
+        Authorization: sessionStorage.getItem("token"),
+      },
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const updateDeck = async (payload, currentDeckId) => {
+  try {
+    const deck = await fetch(`${baseUrl}/deck/${currentDeckId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: sessionStorage.getItem("token"),
+      },
+      body: JSON.stringify({ ...updateDeckDefaultPayload, ...payload }),
+    });
+    const data = await deck.json();
+    return data;
+  } catch (error) {
+    console.log("error", error);
+  }
+};
+
+const fetchAllGames = async () => {
+  try {
+    const response = await fetch(`${baseUrl}/game`, {
+      headers: {
+        Authorization: sessionStorage.getItem("token"),
+      },
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const deleteDeck = async (id) => {
+  try {
+    await fetch(`${baseUrl}/deck/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: sessionStorage.getItem("token"),
+      },
+    });
+  } catch (error) {
+    console.log("error", error);
+  }
+};

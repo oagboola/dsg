@@ -1,0 +1,223 @@
+$(document).ready(async function () {
+  const swiper = new Swiper(".swiper-container", {
+    slidesPerView: 3,
+    spaceBetween: 30,
+    navigation: {
+      nextEl: ".next-slide-btn",
+      prevEl: ".previous-slide-btn",
+    },
+  });
+  let selectedGenres = {};
+  let icons = [];
+  let primaryGenre;
+  let allGames;
+  try {
+    const data = await fetch(
+      "https://mycorrhizal.deepseedgames.com/api:58ysOPHC/icons"
+    );
+    icons = await data.json();
+    renderIcons(icons);
+    const allGamesData = await fetch(
+      "https://mycorrhizal.deepseedgames.com/api:58ysOPHC/game"
+    );
+    allGames = await allGamesData.json();
+    renderGameList(allGames, swiper);
+  } catch (error) {
+    console.log("error loading icons: ", error);
+  }
+
+  // track selected genres
+  $(".genre-icon-wrapper").on("click", function (e) {
+    e.preventDefault();
+    const el = $(e.target);
+
+    // go from default to selected (1st click)
+    if (el.hasClass("unselected-genre")) {
+      el.removeClass("unselected-genre");
+      el.addClass("include-genre");
+      const id = el.attr("data-id");
+      selectedGenres[id] = "include";
+      filterGameList(selectedGenres, swiper);
+      return;
+    }
+
+    // 2nd click: go from selected to exclude
+    if (el.hasClass("include-genre")) {
+      el.removeClass("include-genre");
+      el.addClass("exclude-genre");
+      const id = el.attr("data-id");
+      selectedGenres[id] = "exclude";
+      filterGameList(selectedGenres, swiper);
+      return;
+    }
+
+    // 3rd click: go from exclude to default (unselected)
+    if (el.hasClass("exclude-genre")) {
+      el.removeClass("exclude-genre");
+      el.addClass("unselected-genre");
+      const id = el.attr("data-id");
+      delete selectedGenres[id];
+      filterGameList(selectedGenres, swiper);
+      return;
+    }
+
+    // transit from primary to selected
+    if (el.hasClass("include-primary")) {
+      el.removeClass("include-primary");
+      el.addClass("include-genre");
+      const id = el.attr("data-id");
+      selectedGenres[id] = "include";
+      filterGameList(selectedGenres, swiper);
+      return;
+    }
+  });
+
+  $(".genre-icon-wrapper").on("dblclick", function (el) {
+    if (primaryGenre) {
+      primaryGenre.removeClass("include-primary");
+      primaryGenre.addClass("unselected-genre");
+      const id = primaryGenre.attr("data-id");
+      delete selectedGenres[id];
+    }
+    $(el.target).removeClass("include-genre");
+    $(el.target).removeClass("exclude-genre");
+    $(el.target).removeClass("unselected-genre");
+    $(el.target).addClass("include-primary");
+    const id = $(el.target).attr("data-id");
+    primaryGenre = $(el.target);
+    selectedGenres[id] = "primary";
+    filterGameList(selectedGenres, swiper);
+  });
+
+  $("#save-deck").on("click", async function (e) {
+    e.preventDefault();
+    $("#name").attr("disabled", true);
+    const deckName = $("#name").val();
+    if (!deckName) {
+      alert("Deck name cannot be empty");
+      return;
+    }
+    try {
+      await createNewDeck(deckName, selectedGenres);
+      $("#name").val("");
+      renderIcons(icons);
+      selectedGenres = {};
+      alert("Deck succesfully created");
+    } catch (error) {
+      alert("error creating Deck");
+    }
+    $("#name").attr("disabled", false);
+  });
+});
+
+const createNewDeck = async (name, selectedGenres) => {
+  const deckInfo = {
+    name,
+    icons: Object.entries(selectedGenres).map(([id, state]) => ({ id, state })),
+  };
+  try {
+    const response = await fetch(
+      "https://mycorrhizal.deepseedgames.com/api:58ysOPHC/deck",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: sessionStorage.getItem("token"),
+        },
+        body: JSON.stringify(deckInfo),
+      }
+    );
+    console.log("response", response)
+    window.location.href = window.location.origin + "/deck";
+  } catch (error) {
+    console.log("error saving deck: ", error);
+  }
+};
+
+const renderIcons = (icons) => {
+  $(".included-genres-wrapper").html("");
+  icons.forEach((icon) => {
+    const iconEl = $(
+      `<div class="genre-icon-wrapper">
+        <img width="40px" height="40px" data-id=${icon.id} class="genre-icon unselected-genre" src=${icon.url} alt=${icon.name} />
+      </div>`
+    );
+    $(".included-genres-wrapper").append(iconEl);
+  });
+};
+
+const renderGameList = (games, swiper) => {
+  swiper.removeAllSlides();
+  const slides = games.map((game) => {
+    const centerIcon = game.icons.find(
+      (icon) => icon.position === "center"
+    ).details;
+    const rootIcon = game.icons.find(
+      (icon) => icon.position === "root"
+    )?.details;
+    const otherIcons = game.icons.filter(
+      (icon) => icon.position !== "center" && icon.position !== "root"
+    );
+
+    console.log("center icon", centerIcon);
+    console.log("centrootIconer icon", rootIcon);
+
+    return `
+    <div class="swiper-slide selection-card">
+      <div class="selection-card-icon center-icon">
+        <img
+          width="25px"
+          height="25px"
+          src="${centerIcon?.url}"
+        />
+      </div>
+      <div class="selection-card-icon root-icon">
+        ${
+          rootIcon ? `<img width=25px height=25px src="${rootIcon?.url}"/>` : ""
+        }
+      </div>
+      <div class="selection-card-icon top-icon">
+        ${
+          otherIcons[0]
+            ? `<img width=25px height=25px src="${otherIcons[0]?.url}"/>`
+            : ""
+        }
+      </div>
+      <div class="selection-card-icon top-right-icon">
+        ${
+          otherIcons[1]
+            ? `<img width=25px height=25px src="${otherIcons[1]?.url}"/>`
+            : ""
+        }
+      </div>
+      <div class="selection-card-icon top-left-icon">
+        ${
+          otherIcons[2]
+            ? `<img width=25px height=25px src="${otherIcons[2]?.url}"/>`
+            : ""
+        }
+      </div>
+    </div>`;
+  });
+  swiper.appendSlide(slides);
+  swiper.init();
+};
+
+const filterGameList = async (filter, swiper) => {
+  const query = [];
+  for (const [key, value] of Object.entries(filter)) {
+    query.push(
+      `${value === "primary" ? `${value}_icon` : `${value}_icons`}=${key}`
+    );
+  }
+  const queryString = query.join("&");
+  try {
+    const data = await fetch(
+      `https://mycorrhizal.deepseedgames.com/api:58ysOPHC/game-filter?${queryString}`
+    );
+    const games = await data.json();
+    renderGameList(games, swiper);
+  } catch (error) {
+    alert(error);
+  }
+};
