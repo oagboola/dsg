@@ -5,14 +5,16 @@ $(document).ready(async function () {
   let allGames = [];
   const gamesToAdd = new Set();
   try {
+    const preselectedDeck = sessionStorage.getItem("clickedDeck");
     const decks = await listDecks();
     allDecks = decks;
-    const deckTabs = generateTabs(decks);
+    const deckTabs = generateTabs(decks, preselectedDeck);
     $(deckTabs.join("")).insertBefore(".create-deck");
 
     const activeTabName = $(".deck-tab.is-active div").html();
     const activeTab = $(".deck-tab.is-active")[0];
-    const activeTabId = $(activeTab).attr("data-id");
+    const activeTabId = preselectedDeck || $(activeTab).attr("data-id");
+    sessionStorage.removeItem("clickedDeck");
     currentDeckId = activeTabId;
     const { deckLength } = await renderDeck(decks, activeTabId);
 
@@ -166,12 +168,14 @@ $(document).ready(async function () {
   });
 });
 
-const generateTabs = (decks) => {
+const generateTabs = (decks, activeDeckId) => {
   const deckTabs = decks.map(
     (deck, i) =>
-      `<div class="deck-tab ${i === 0 && "is-active"}" data-id=${
-        deck.id
-      }><div>${deck.name}</div></div>`
+      `<div class="deck-tab ${
+        activeDeckId
+          ? deck.id == activeDeckId && "is-active"
+          : i == 0 && "is-active"
+      }" data-id=${deck.id}><div>${deck.name}</div></div>`
   );
   return deckTabs;
 };

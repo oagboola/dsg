@@ -9,13 +9,23 @@ $(document).ready(async () => {
       const data = await response.json();
       sessionStorage.setItem("token", data.token);
       // window.history.pushState({}, "", window.location.origin + '/create-a-deck'); // ckear code from url
-      window.location.href = window.location.origin + "/deck";
+      window.location.href = window.location.origin;
       $(".auth-btn").css("display", "none");
       $(".logout-btn").css("display", "block");
     } catch (error) {
       console.log("Error completing authorization: ", error);
     }
   }
+  $(".stack-slider").on("click", ".deck-info-card", (e) => {
+    const deckId = $(e.currentTarget).attr("data-deck-id");
+    const isFeatured = $(e.currentTarget).attr("data-isFeatured");
+    sessionStorage.setItem("clickedDeck", deckId);
+    if (!isFeatured || isFeatured == "false") {
+      window.location.href = window.location.origin + "/deck";
+    } else {
+      window.location.href = window.location.origin + "/featured-deck";
+    }
+  });
 
   var swiper = new Swiper(".stack-slider", {
     // Optional parameters
@@ -73,10 +83,10 @@ $(document).ready(async () => {
         return { deck, deckGames };
       })
     );
-    generateStack(featuredDeckGames, swiper);
+    generateStack(featuredDeckGames, swiper, true);
   } else {
     const decksWithGames = await getUserDecks();
-    generateStack(decksWithGames, swiper);
+    generateStack(decksWithGames, swiper, false);
   }
   await generateHomeGameCards();
   generateNavBarDecks(featuredDecks);
@@ -105,13 +115,34 @@ const homeCardStack = (game) => {
   return gameCardFront(game);
 };
 
-const generateStack = (decksWithGames, swiper) => {
+const generateStack = (decksWithGames, swiper, isFeatured) => {
   swiper.removeAllSlides();
   decksWithGames.map(({ deck, deckGames }) => {
+    const { featuredDeckIcons, deckGameIcons } = deck;
+    const deckIconsList =
+      featuredDeckIcons ||
+      deckGameIcons?.map(({ iconDetail, state }) => ({
+        url: iconDetail.url,
+        state,
+      }));
+    const deckIcons = deckIconsList?.map(
+      (icon) =>
+        `<img width="25px" height="25px" src="${
+          icon.url
+        }" style="background-color:${
+          icon.state === "exclude"
+            ? "red"
+            : icon.state === "include"
+            ? "green"
+            : "blue"
+        }; margin:1px; border-radius:50%"/>`
+    );
     const card1 = `
-    <div class="deck-info-card stack-card card-1">
-      <div>${deck.name}</div>
-      <div></div>
+    <div class="deck-info-card stack-card card-1" data-deck-id=${
+      deck.id
+    } data-isFeatured=${isFeatured}>
+      <div>${deck.name} (${deckGames.length})</div>
+      <div>${deckIcons?.join("")}</div>
     </div>`;
     const otherCards = deckGames
       .slice(0, 4)
