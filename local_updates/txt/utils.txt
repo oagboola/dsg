@@ -11,7 +11,7 @@ const formatDate = (date) => {
 };
 
 const gameCardFlip = ({ games, showDeleteIcon = true }) => {
-  return games.map((game) => {
+  return games?.map((game) => {
     // const gameCard = `
     //   <div class="card-stacked" data-id=${game.id} data-name=${game.name}>
     //     <div class="card-item is-stacked"">

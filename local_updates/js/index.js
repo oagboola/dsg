@@ -90,6 +90,24 @@ $(document).ready(async () => {
   }
   await generateHomeGameCards();
   generateNavBarDecks(featuredDecks);
+
+  // render game modal
+  $(".stack-card").click(async (e) => {
+    const gameId = $(e.currentTarget).attr("data-id");
+    if ("URLSearchParams" in window) {
+      const searchParams = new URLSearchParams(window.location.search);
+      searchParams.set("gameId", gameId);
+      const newRelativePathQuery =
+        window.location.pathname + "?" + searchParams.toString();
+      history.pushState(null, "", newRelativePathQuery);
+    }
+
+    $(".game-info-modal").css("display", "block");
+    $(".game-info-modal").css("opacity", "100");
+    $(".game-pop-up").css("display", "block");
+    // const otherDecks = allDecks.filter((deck) => deck.id != currentDeckId);
+    await renderGameModalContent({ addableDecks: [] });
+  });
 });
 
 const getUserDecks = async () => {

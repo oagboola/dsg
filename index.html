@@ -61,26 +61,26 @@
           console.log("Authentication error: ", error);
         }
       });
-      $(".decks-container").on("click", '.card-item', async function (e) {
-        const gameId = $(e.currentTarget.parentNode).attr("data-id");
-        if ("URLSearchParams" in window) {
-          const searchParams = new URLSearchParams(window.location.search);
-          searchParams.set("gameId", gameId);
-          const newRelativePathQuery =
-            window.location.pathname + "?" + searchParams.toString();
-          history.pushState(null, "", newRelativePathQuery);
-        }
-        $(".game-info-modal").css({ display: "block", opacity: 1, transform: "scale(1)" });
-        await setGameInfo()
-      });
+      // $(".decks-container").on("click", '.card-item', async function (e) {
+      //   const gameId = $(e.currentTarget.parentNode).attr("data-id");
+      //   if ("URLSearchParams" in window) {
+      //     const searchParams = new URLSearchParams(window.location.search);
+      //     searchParams.set("gameId", gameId);
+      //     const newRelativePathQuery =
+      //       window.location.pathname + "?" + searchParams.toString();
+      //     history.pushState(null, "", newRelativePathQuery);
+      //   }
+      //   $(".game-info-modal").css({ display: "block", opacity: 1, transform: "scale(1)" });
+      //   // await setGameInfo()
+      // });
     });
   </script>
   <!-- <script src="https://cdn.prod.website-files.com/6474bd2c1d83a899e5ae5b73/66e98697257adb00f63b01c6_utils.txt"></script> -->
   <script src="./local_updates/js/api.js"></script>
   <script src="./local_updates/js/utils.js"></script>
   <script src="./local_updates/js/index.js"></script>
-  <script
-    src="https://uploads-ssl.webflow.com/6474bd2c1d83a899e5ae5b73/669bf405a447c7cc1349a2a4_game-info-modal.txt"></script>
+  <!-- <script src="https://uploads-ssl.webflow.com/6474bd2c1d83a899e5ae5b73/669bf405a447c7cc1349a2a4_game-info-modal.txt"></script> -->
+  <script src="./local_updates/js/game-info-modal.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.css">
   <style>
     .swiper {
