@@ -23,7 +23,11 @@ $(document).ready(async function () {
     const activeTabId = preselectedDeck || $(activeTab).attr("data-id");
     sessionStorage.removeItem("clickedDeck");
     currentDeckId = activeTabId;
-    const { deckLength } = await renderDeck(decks, activeTabId);
+    const { deckLength, deckGames: gamesForDeck } = await renderDeck(
+      decks,
+      activeTabId
+    );
+    deckGames = gamesForDeck;
 
     $(".deck-category").html(activeTabName);
     $(".number-of-games").html(deckLength);
@@ -297,13 +301,13 @@ const renderDeck = async (decks, activeTabId) => {
       added_games: addedGames,
     } = decks?.find(({ id }) => id == activeTabId);
 
-    deckGames = await getDeckGames({
+    const deckGames = await getDeckGames({
       deckGameIcons,
       removedGames: removedGames?.filter((rg) => rg),
       addedGames: addedGames?.filter((ag) => ag),
     });
     showDeckGames(deckGames);
-    return { deckLength: deckGames.length };
+    return { deckLength: deckGames.length, deckGames };
   } else {
     showDeckGames([]);
     return { deckLength: 0 };
