@@ -1,6 +1,8 @@
-$(document).ready(() => {
+$(document).ready(async () => {
+  if (sessionStorage.getItem("isLoggedIn") == "false") {
+    $(".add-to-collection").css("display", "none");
+  }
   $(".add-to-collection-list").on("click", ".deck-option", async (e) => {
-    console.log(e.currentTarget);
     const searchParams = new URLSearchParams(window.location.search);
     const gameId = searchParams.get("gameId");
     const deckId = $(e.currentTarget).attr("data-deck-id");
@@ -78,7 +80,7 @@ const renderDeckOptionList = (decks) => {
 
 const rendergameIcons = (icons) => {
   return icons
-    .map(({ url, name }) => {
+    ?.map(({ url, name }) => {
       return `<div class="genre-item bcg-black"><img src="${url}" loading="lazy" alt="${name} width="30px" height="30px" "></div>`;
     })
     .join("");

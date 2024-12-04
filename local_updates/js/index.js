@@ -20,11 +20,11 @@ $(document).ready(async () => {
     const deckId = $(e.currentTarget).attr("data-deck-id");
     const isFeatured = $(e.currentTarget).attr("data-isFeatured");
     sessionStorage.setItem("clickedDeck", deckId);
-    if (!isFeatured || isFeatured == "false") {
-      window.location.href = window.location.origin + "/deck";
-    } else {
-      window.location.href = window.location.origin + "/featured-deck";
-    }
+    window.location.href = window.location.origin + "/deck";
+    // if (!isFeatured || isFeatured == "false") {
+    // } else {
+    //   window.location.href = window.location.origin + "/deck";
+    // }
   });
 
   var swiper = new Swiper(".stack-slider", {
