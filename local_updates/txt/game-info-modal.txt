@@ -1,4 +1,7 @@
 $(document).ready(async () => {
+  if (sessionStorage.getItem("isLoggedIn") == "false") {
+    $(".add-to-collection").css("display", "none");
+  }
   $(".add-to-collection-list").on("click", ".deck-option", async (e) => {
     const searchParams = new URLSearchParams(window.location.search);
     const gameId = searchParams.get("gameId");
@@ -207,5 +210,11 @@ const renderGameModalContent = async ({ addableDecks }) => {
   const gameAssets = setUpBannerSlides(game);
   if (gameAssets.length) {
     setBannerSlide({ type: gameAssets[0].type, src: gameAssets[0].url });
+  }
+};
+
+const hideCollestionDropDown = () => {
+  if (sessionStorage.getItem("isLoggedIn") == "false") {
+    $(".add-to-collection").css("display", "none");
   }
 };

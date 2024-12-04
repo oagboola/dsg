@@ -212,3 +212,9 @@ const renderGameModalContent = async ({ addableDecks }) => {
     setBannerSlide({ type: gameAssets[0].type, src: gameAssets[0].url });
   }
 };
+
+const hideCollestionDropDown = () => {
+  if (sessionStorage.getItem("isLoggedIn") == "false") {
+    $(".add-to-collection").css("display", "none");
+  }
+};

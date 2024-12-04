@@ -6,7 +6,14 @@ $(document).ready(async function () {
   const gamesToAdd = new Set();
   try {
     const preselectedDeck = sessionStorage.getItem("clickedDeck");
-    const decks = await listDecks();
+    let decks = [];
+    if (sessionStorage.getItem("isLoggedIn") == "false") {
+      $(".delete-deck-icon").css("display", "none");
+      $(".edit-deck-icon").css("display", "none");
+      decks = await getFeaturedDecks();
+    } else {
+      decks = await listDecks();
+    }
     allDecks = decks;
     const deckTabs = generateTabs(decks, preselectedDeck);
     $(deckTabs.join("")).insertBefore(".create-deck");
@@ -148,6 +155,7 @@ $(document).ready(async function () {
     $(".game-info-modal").css("display", "block");
     $(".game-info-modal").css("opacity", "100");
     $(".game-pop-up").css("display", "block");
+    hideCollestionDropDown();
     const otherDecks = allDecks.filter((deck) => deck.id != currentDeckId);
     await renderGameModalContent({ addableDecks: otherDecks });
   });
