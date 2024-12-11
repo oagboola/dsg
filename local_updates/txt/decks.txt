@@ -193,6 +193,9 @@ const generateTabs = (decks, activeDeckId) => {
 };
 
 const gameDeckLayout = ({ games, showDeleteIcon = true }) => {
+  if (sessionStorage.getItem("isLoggedIn") == "false") {
+    showDeleteIcon = false;
+  }
   const gameEls = games.map((game) => {
     const productUrl = `${baseUrl}/game-product/${game.id}`;
     const gameFront = gameCardFront(game);

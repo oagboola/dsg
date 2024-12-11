@@ -5,16 +5,29 @@ $(document).ready(async function () {
   let allGames = [];
   const gamesToAdd = new Set();
   try {
-    const decks = await listDecks();
+    const preselectedDeck = sessionStorage.getItem("clickedDeck");
+    let decks = [];
+    if (sessionStorage.getItem("isLoggedIn") == "false") {
+      $(".delete-deck-icon").css("display", "none");
+      $(".edit-deck-icon").css("display", "none");
+      decks = await getFeaturedDecks();
+    } else {
+      decks = await listDecks();
+    }
     allDecks = decks;
-    const deckTabs = generateTabs(decks);
+    const deckTabs = generateTabs(decks, preselectedDeck);
     $(deckTabs.join("")).insertBefore(".create-deck");
 
     const activeTabName = $(".deck-tab.is-active div").html();
     const activeTab = $(".deck-tab.is-active")[0];
-    const activeTabId = $(activeTab).attr("data-id");
+    const activeTabId = preselectedDeck || $(activeTab).attr("data-id");
+    sessionStorage.removeItem("clickedDeck");
     currentDeckId = activeTabId;
-    const { deckLength } = await renderDeck(decks, activeTabId);
+    const { deckLength, deckGames: gamesForDeck } = await renderDeck(
+      decks,
+      activeTabId
+    );
+    deckGames = gamesForDeck;
 
     $(".deck-category").html(activeTabName);
     $(".number-of-games").html(deckLength);
@@ -146,6 +159,7 @@ $(document).ready(async function () {
     $(".game-info-modal").css("display", "block");
     $(".game-info-modal").css("opacity", "100");
     $(".game-pop-up").css("display", "block");
+    hideCollestionDropDown();
     const otherDecks = allDecks.filter((deck) => deck.id != currentDeckId);
     await renderGameModalContent({ addableDecks: otherDecks });
   });
@@ -161,51 +175,22 @@ $(document).ready(async function () {
       await saveOrder(cartConfirmResponse);
     });
     $(".add-all-to-cart").on("click", async () => {
+      console.log("add all to cart");
       await addAllToCart(deckGames);
     });
   });
 });
 
-const generateTabs = (decks) => {
+const generateTabs = (decks, activeDeckId) => {
   const deckTabs = decks.map(
     (deck, i) =>
-      `<div class="deck-tab ${i === 0 && "is-active"}" data-id=${
-        deck.id
-      }><div>${deck.name}</div></div>`
+      `<div class="deck-tab ${
+        activeDeckId
+          ? deck.id == activeDeckId && "is-active"
+          : i == 0 && "is-active"
+      }" data-id=${deck.id}><div>${deck.name}</div></div>`
   );
   return deckTabs;
-};
-
-const getDeckGames = async ({ deckGameIcons, removedGames, addedGames }) => {
-  const query = deckGameIcons.map(
-    ({ state, icons_id }) =>
-      `${state}_${state === "primary" ? "icon" : "icons"}=${icons_id}`
-  );
-  const queryString = query.join("&");
-  try {
-    const data = await fetch(`${baseUrl}/game-filter?${queryString}`);
-    const games = await data.json();
-    const allGames = [...games, ...(addedGames || [])];
-    if (removedGames && removedGames.length) {
-      const removedGamesIds = new Set(removedGames.map(({ id }) => id));
-      const filteredGames = allGames.filter(
-        ({ id }) => !removedGamesIds.has(id)
-      );
-      return filteredGames;
-    }
-    const gameSet = new Set();
-    const deckGames = allGames.filter((game) => {
-      if (gameSet.has(game.id)) {
-        return false;
-      } else {
-        gameSet.add(game.id);
-        return true;
-      }
-    });
-    return deckGames;
-  } catch (error) {
-    console.log("get deck games error", error);
-  }
 };
 
 const gameDeckLayout = ({ games, showDeleteIcon = true }) => {
@@ -311,21 +296,19 @@ const addAllToCart = async (games) => {
 
 const renderDeck = async (decks, activeTabId) => {
   if (decks.length) {
-    const x = decks?.find(({ id }) => id == activeTabId);
-
     const {
       deckGameIcons,
       removed_games: removedGames,
       added_games: addedGames,
-    } = x;
+    } = decks?.find(({ id }) => id == activeTabId);
 
-    deckGames = await getDeckGames({
+    const deckGames = await getDeckGames({
       deckGameIcons,
       removedGames: removedGames?.filter((rg) => rg),
       addedGames: addedGames?.filter((ag) => ag),
     });
     showDeckGames(deckGames);
-    return { deckLength: deckGames.length };
+    return { deckLength: deckGames.length, deckGames };
   } else {
     showDeckGames([]);
     return { deckLength: 0 };
