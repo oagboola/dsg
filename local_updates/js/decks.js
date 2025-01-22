@@ -10,14 +10,15 @@ $(document).ready(async function () {
     if (sessionStorage.getItem("isLoggedIn") == "false") {
       $(".delete-deck-icon").css("display", "none");
       $(".edit-deck-icon").css("display", "none");
+      $(".add-games-btn").css("display", "none");
+      $(".duplicate-deck").css("display", "none");
+      $(".create-deck").css("display", "none");
       decks = await getFeaturedDecks();
     } else {
       decks = await listDecks();
     }
     allDecks = decks;
-    const deckTabs = generateTabs(decks, preselectedDeck);
-    $(deckTabs.join("")).insertBefore(".create-deck");
-
+    renderTabList(decks, preselectedDeck);
     const activeTabName = $(".deck-tab.is-active div").html();
     const activeTab = $(".deck-tab.is-active")[0];
     const activeTabId = preselectedDeck || $(activeTab).attr("data-id");
@@ -28,7 +29,6 @@ $(document).ready(async function () {
       activeTabId
     );
     deckGames = gamesForDeck;
-
     $(".deck-category").html(activeTabName);
     $(".number-of-games").html(deckLength);
   } catch (error) {
@@ -57,8 +57,11 @@ $(document).ready(async function () {
     $(el.currentTarget).addClass("is-active");
   });
 
-  $(".create-deck").on("click", (el) => {
-    window.location.href = window.location.origin + "/create-a-deck";
+  $(".duplicate-deck").on("click", async (el) => {
+    // window.location.href = window.location.origin + "/create-a-deck";
+    const duplicatedDeck = await duplicateDeck({ deckId: currentDeckId });
+    allDecks.push(duplicatedDeck);
+    renderTabList(allDecks, duplicatedDeck.id);
   });
 
   $(".edit-deck-icon").on("click", (el) => {
@@ -132,13 +135,18 @@ $(document).ready(async function () {
   });
 
   $(".add-games-btn").on("click", async (e) => {
+    const gamesToAddArr = Array.from(gamesToAdd);
     const updatedDeck = await updateDeck(
-      { added_games: Array.from(gamesToAdd) },
+      { added_games: gamesToAddArr },
       currentDeckId
     );
-    gamesToAdd.clear();
     $(".search-modal-wrapper").css({ display: "none", opacity: 0 });
     const latestDecks = await refreshDeck(updatedDeck, allDecks);
+    const fullGamesToAdd = allGames.filter(({ id }) =>
+      gamesToAddArr.includes(id.toString())
+    );
+    deckGames.push(...fullGamesToAdd);
+    gamesToAdd.clear();
     await renderDeck(latestDecks, currentDeckId);
   });
 
@@ -202,7 +210,7 @@ const gameDeckLayout = ({ games, showDeleteIcon = true }) => {
     const gameBack = gameCardBack(game);
     const gameCard = `
       <div class="card-stacked" data-id=${game.id} data-name="${game.name}">
-        <div class="game-body">
+        <div class="game-body" style="cursor:pointer">
           <swiper-container init="false" class="card-flip${
             game.id
           }" data-game-id=${game.id}>
@@ -261,6 +269,7 @@ const gameSearch = (filter, games) => {
 
 const renderModalGames = (games, deckGames) => {
   const deckGamesId = new Set(deckGames.map(({ id }) => id));
+  console.log("deck games when showing modal again", deckGames);
   const gamesToShow = games.filter(({ id }) => !deckGamesId.has(id));
   gameDeck = gameDeckLayout({ games: gamesToShow, showDeleteIcon: false });
   if (gameDeck.length) {
@@ -320,4 +329,9 @@ const renderDeck = async (decks, activeTabId) => {
 const refreshDeck = (updatedDeck, allDecks) => {
   const decks = allDecks.filter((deck) => deck.id !== updatedDeck.id);
   return [...decks, updatedDeck];
+};
+
+const renderTabList = (decks, preselectedDeck) => {
+  const deckTabs = generateTabs(decks, preselectedDeck);
+  $(".deck-tabs").html(deckTabs.join(""));
 };

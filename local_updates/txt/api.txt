@@ -178,3 +178,22 @@ const getFeaturedGames = async () => {
     console.log("error fetching featured games", error);
   }
 };
+
+const duplicateDeck = async ({ deckId, isFeatured = false }) => {
+  try {
+    const deck = await fetch(
+      `${baseUrl}/deck/duplicate/${deckId}?isFeatured=${isFeatured}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: sessionStorage.getItem("token"),
+        },
+      }
+    );
+    const data = await deck.json();
+    return data;
+  } catch (error) {
+    console.log("error", error);
+  }
+};
